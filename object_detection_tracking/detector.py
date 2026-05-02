@@ -7,6 +7,12 @@ from ultralytics import YOLO
 from typing import List, Dict, Any
 import numpy as np
 
+# New - detect everything, classify as living or non-living
+LIVING_CLASSES = [
+    'person', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+    'elephant', 'bear', 'zebra', 'giraffe'
+]
+
 class Detector:
     """
     Wrapper class for YOLOv8 object detection.
@@ -28,8 +34,7 @@ class Detector:
         self.model = YOLO(model_path)
         self.conf_threshold = conf_threshold
         
-        # COCO dataset class IDs for: person, bicycle, car, motorcycle, bus, truck, cat, dog
-        self.allowed_classes = {0, 1, 2, 3, 5, 7, 15, 16}
+        pass
         
     def detect(self, frame: np.ndarray) -> List[Dict[str, Any]]:
         """
@@ -52,17 +57,19 @@ class Detector:
             conf = float(box.conf[0])
             cls_id = int(box.cls[0])
             
-            # Filter by confidence and allowed classes
-            if conf >= self.conf_threshold and cls_id in self.allowed_classes:
+            # Filter by confidence
+            if conf >= self.conf_threshold:
                 # AIML Concept: Bounding box regression
                 # YOLO regresses the final bounding box coordinates
                 x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
                 class_name = self.model.names[cls_id]
+                is_living = class_name in LIVING_CLASSES
                 
                 detections.append({
                     "bbox": [int(x1), int(y1), int(x2), int(y2)],
                     "class_name": class_name,
-                    "confidence": conf
+                    "confidence": conf,
+                    "is_living": is_living
                 })
                 
         return detections
