@@ -7,6 +7,7 @@ from collections import defaultdict
 from detector import Detector
 from tracker import CentroidTracker
 from utils import draw_detections, draw_fps, draw_stats, calculate_fps
+from config import CFG
 
 def save_screenshot(frame):
     """
@@ -53,13 +54,13 @@ def main():
     is_recording = False
     clip_writer = None
     last_auto_save_count = 0
-    AUTO_SAVE_THRESHOLD = 10  # auto-save when this many objects detected simultaneously
+    AUTO_SAVE_THRESHOLD = CFG.auto_save_threshold  # auto-save when this many objects detected simultaneously
 
     # 9. STARTUP MESSAGE
     print("Controls: Q=quit | S=screenshot | R=start/stop recording")
     print(f"Auto-save triggers at {AUTO_SAVE_THRESHOLD}+ simultaneous objects")
 
-    detector = Detector(conf_threshold=0.5)
+    detector = Detector(conf_threshold=CFG.confidence)
     tracker = CentroidTracker()
 
     cap = cv2.VideoCapture(0)
@@ -72,12 +73,17 @@ def main():
     id_to_class = {}
     id_to_conf = {}
     id_to_living = {}
+    frame_count = 0
 
     try:
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 break
+                
+            frame_count += 1
+            if frame_count % CFG.skip_frames != 0:
+                continue
 
             # Detect objects
             detections = detector.detect(frame)
