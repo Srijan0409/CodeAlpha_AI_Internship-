@@ -6,12 +6,13 @@ Tracks objects across frames by associating their center points.
 import numpy as np
 from typing import List, Dict, Tuple, Any
 from collections import OrderedDict
+from config import CFG
 
 class CentroidTracker:
     """
     A simple centroid-based tracker that assigns unique IDs to objects.
     """
-    def __init__(self, max_disappeared: int = 30, distance_threshold: int = 100):
+    def __init__(self, max_disappeared: int = CFG.max_disappeared, distance_threshold: int = CFG.distance_threshold):
         """
         Initializes the tracker.
         
