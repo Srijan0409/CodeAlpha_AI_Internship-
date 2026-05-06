@@ -6,7 +6,7 @@ This module handles loading the pretrained YOLOv8 model and running inference.
 from ultralytics import YOLO
 from typing import List, Dict, Any
 import numpy as np
-from config import CFG
+from core.config import CFG
 
 # New - detect everything, classify as living or non-living
 LIVING_CLASSES = [

@@ -13,9 +13,9 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 
-from detector import Detector
-from tracker import CentroidTracker
-from utils import draw_detections, draw_fps, draw_stats, calculate_fps
+from core.detector import Detector
+from core.tracker import CentroidTracker
+from core.utils import draw_detections, draw_fps, draw_stats, calculate_fps
 
 # 2. PAGE CONFIG
 st.set_page_config(page_title="Object Detection & Tracking", layout="wide", page_icon="🎯")

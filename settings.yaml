@@ -1,7 +1,7 @@
 detection:
   confidence_threshold: 0.5
   skip_frames: 2
-  model_path: "yolov8n.pt"
+  model_path: "models/yolov8n.pt"
   allowed_source: 0
 
 tracking:

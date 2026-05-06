@@ -1,8 +1,6 @@
 __pycache__/
 *.pyc
-logs/
-captures/
-clips/
+output/
 *.pt
 .env
 .venv/

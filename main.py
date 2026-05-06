@@ -4,15 +4,15 @@ import os
 import datetime
 from collections import defaultdict
 
-from detector import Detector
-from tracker import CentroidTracker
-from utils import draw_detections, draw_fps, draw_stats, calculate_fps, draw_trails
-from config import CFG
-from camera_stream import CameraStream
-from zone_manager import ZoneManager
-from voice_alert import VoiceAlert
-from detection_logger import DetectionLogger
-from heatmap import DetectionHeatmap
+from core.detector import Detector
+from core.tracker import CentroidTracker
+from core.utils import draw_detections, draw_fps, draw_stats, calculate_fps, draw_trails
+from core.config import CFG
+from core.camera_stream import CameraStream
+from core.zone_manager import ZoneManager
+from core.voice_alert import VoiceAlert
+from core.detection_logger import DetectionLogger
+from core.heatmap import DetectionHeatmap
 
 def save_screenshot(frame):
     """
@@ -24,7 +24,7 @@ def save_screenshot(frame):
     Returns:
         str: The filepath of the saved screenshot.
     """
-    filepath = datetime.datetime.now().strftime("captures/frame_%H%M%S_%d%b%y.png")
+    filepath = datetime.datetime.now().strftime("output/captures/frame_%H%M%S_%d%b%y.png")
     cv2.imwrite(filepath, frame)
     print(f"Screenshot saved: {filepath}")
     return filepath
@@ -40,7 +40,7 @@ def start_recording(frame, fps):
     Returns:
         cv2.VideoWriter: The video writer object, or None if initialization fails.
     """
-    filename = datetime.datetime.now().strftime("clips/clip_%H%M%S_%d%b%y.mp4")
+    filename = datetime.datetime.now().strftime("output/clips/clip_%H%M%S_%d%b%y.mp4")
     try:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         clip_fps = max(10.0, float(fps))
@@ -53,8 +53,8 @@ def start_recording(frame, fps):
 
 def main():
     # 2. SETUP before the main loop starts
-    os.makedirs("captures", exist_ok=True)
-    os.makedirs("clips", exist_ok=True)
+    os.makedirs("output/captures", exist_ok=True)
+    os.makedirs("output/clips", exist_ok=True)
 
     is_recording = False
     clip_writer = None
@@ -76,7 +76,7 @@ def main():
     voice = VoiceAlert(enabled=CFG.voice_enabled, cooldown_seconds=CFG.voice_cooldown)
     print("Voice alerts: ON \u2014 press V to toggle" if CFG.voice_enabled else "Voice alerts: OFF \u2014 press V to toggle")
     
-    logger = DetectionLogger(output_dir="logs")
+    logger = DetectionLogger(output_dir="output/logs")
     print(f"Logging detections to: {logger.filepath}")
     print("Press L to see log stats")
 
