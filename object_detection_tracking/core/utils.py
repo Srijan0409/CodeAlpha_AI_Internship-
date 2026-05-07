@@ -6,7 +6,7 @@ import cv2
 import time
 import numpy as np
 from typing import Dict, Tuple, List, Any
-from config import CFG
+from core.config import CFG
 
 LIVING_COLOR = CFG.living_color    # Red   in BGR (OpenCV format)
 NONLIVING_COLOR = CFG.nonliving_color # Gray  in BGR
