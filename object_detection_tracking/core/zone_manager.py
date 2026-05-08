@@ -1,17 +1,27 @@
+from datetime import datetime
+from typing import Any, Dict, List, Tuple
 import cv2
 import numpy as np
-from typing import List, Tuple, Dict, Any
-from datetime import datetime
 
 class ZoneManager:
     """
-    Manages polygonal ROI zones on the video frame.
-    Tracks which objects are inside each zone and raises alerts on entry.
-    Uses cv2.pointPolygonTest for precise polygon intersection detection.
+    Manages polygonal ROI (Region of Interest) zones on the video frame.
+    
+    Tracks which tracked objects are physically inside each zone boundary,
+    handling state changes and raising alerts on initial zone entry.
+    Utilizes cv2.pointPolygonTest for precise spatial intersection detection.
+    
+    Attributes:
+        zones (List[Dict[str, Any]]): A list storing the state dictionaries for all active zones.
+        drawing (bool): Flag indicating if the user is currently in zone-drawing mode.
+        current_points (List[Tuple[int, int]]): Accumulator for points of the polygon being drawn.
+        zone_object_history (Dict[int, set]): Mapping to track historical object entries per zone.
     """
     
     def __init__(self) -> None:
-        """Initialize the ZoneManager with an empty list of zones and state variables."""
+        """
+        Initializes the ZoneManager with an empty list of zones and state variables.
+        """
         self.zones: List[Dict[str, Any]] = []
         self.drawing: bool = False
         self.current_points: List[Tuple[int, int]] = []
@@ -19,11 +29,11 @@ class ZoneManager:
     
     def add_zone(self, points: List[Tuple[int, int]], name: str = None) -> None:
         """
-        Add a new polygonal zone.
+        Registers a newly drawn polygonal zone to the manager.
         
         Args:
-            points: List of (x,y) tuples forming the polygon vertices.
-            name: Optional label for this zone e.g. "Zone A".
+            points (List[Tuple[int, int]]): A list of (x, y) coordinates forming the polygon vertices.
+            name (str, optional): A descriptive label for this zone. Defaults to "Zone {id}".
         """
         zone_id = len(self.zones) + 1
         self.zones.append({
@@ -38,29 +48,30 @@ class ZoneManager:
     
     def is_point_in_zone(self, zone: Dict[str, Any], cx: int, cy: int) -> bool:
         """
-        Check if centroid (cx, cy) is inside the zone polygon.
+        Evaluates whether a given centroid coordinate lies within a specific zone's boundaries.
         
         Args:
-            zone: The zone dictionary containing polygon points.
-            cx: Centroid x-coordinate.
-            cy: Centroid y-coordinate.
+            zone (Dict[str, Any]): The state dictionary of the zone being checked.
+            cx (int): The x-coordinate of the object's centroid.
+            cy (int): The y-coordinate of the object's centroid.
             
         Returns:
-            bool: True if inside or on boundary.
+            bool: True if the centroid is strictly inside or exactly on the boundary, False otherwise.
         """
         result = cv2.pointPolygonTest(zone['points'], (float(cx), float(cy)), measureDist=False)
         return result >= 0
     
     def update(self, tracked_objects: Dict[int, Tuple[int, int, List[int]]], id_to_class: Dict[int, str]) -> List[Dict[str, Any]]:
         """
-        Check all tracked objects against all zones.
+        Checks all currently tracked objects against all active zones to detect intrusions.
         
         Args:
-            tracked_objects: Dictionary mapping object ID to (cx, cy, bbox).
-            id_to_class: Dictionary mapping object ID to class name.
+            tracked_objects (Dict[int, Tuple[int, int, List[int]]]): Dictionary mapping object IDs 
+                                                                     to (cx, cy, bbox).
+            id_to_class (Dict[int, str]): Dictionary mapping object IDs to string class names.
             
         Returns:
-            List[Dict]: List of alert dictionaries for newly entered objects.
+            List[Dict[str, Any]]: A list of alert dictionaries for objects that newly entered a zone this frame.
         """
         alerts = []
         
@@ -95,16 +106,17 @@ class ZoneManager:
     
     def draw_zones(self, frame: np.ndarray) -> np.ndarray:
         """
-        Draw all zones on the frame.
-        Occupied zones: red fill + red border.
-        Empty zones: green semi-transparent fill + green border.
-        Each zone shows its name and object count inside.
+        Renders all active zones onto the provided video frame.
+        
+        Visual styling:
+        - Occupied zones: Red semi-transparent fill with a solid red boundary.
+        - Empty zones: Green semi-transparent fill with a solid green boundary.
         
         Args:
-            frame: OpenCV image/frame.
+            frame (np.ndarray): The OpenCV image/frame to draw on.
             
         Returns:
-            np.ndarray: Modified OpenCV image/frame.
+            np.ndarray: The modified OpenCV image with rendered zones.
         """
         if not self.zones:
             return frame
@@ -137,14 +149,14 @@ class ZoneManager:
     
     def handle_mouse_click(self, event: int, x: int, y: int, flags: int, param: Any) -> None:
         """
-        Mouse callback for drawing zones interactively.
+        OpenCV mouse callback handler for drawing polygonal zones interactively.
         
         Args:
-            event: OpenCV mouse event type.
-            x: x-coordinate of the mouse click.
-            y: y-coordinate of the mouse click.
-            flags: OpenCV mouse event flags.
-            param: Additional parameters.
+            event (int): The OpenCV mouse event type identifier (e.g., cv2.EVENT_LBUTTONDOWN).
+            x (int): The x-coordinate of the mouse cursor during the event.
+            y (int): The y-coordinate of the mouse cursor during the event.
+            flags (int): Any OpenCV mouse event flags.
+            param (Any): Additional callback parameters provided by OpenCV.
         """
         if event == cv2.EVENT_LBUTTONDOWN:
             self.current_points.append((x, y))
@@ -164,13 +176,15 @@ class ZoneManager:
     
     def draw_in_progress_zone(self, frame: np.ndarray) -> np.ndarray:
         """
-        Draw dots and lines showing the zone currently being drawn.
+        Renders the active (incomplete) polygon being drawn by the user.
+        
+        Draws yellow dots at plotted vertices and connects them with lines.
         
         Args:
-            frame: OpenCV image/frame.
+            frame (np.ndarray): The OpenCV image/frame.
             
         Returns:
-            np.ndarray: Modified OpenCV image/frame.
+            np.ndarray: The modified image with the drawing-in-progress overlay.
         """
         for pt in self.current_points:
             cv2.circle(frame, pt, 5, (0, 255, 255), -1)
@@ -181,15 +195,20 @@ class ZoneManager:
     
     @property
     def zone_count(self) -> int:
-        """Returns the number of active zones."""
+        """
+        Provides the total number of registered active zones.
+        
+        Returns:
+            int: The integer count of zones.
+        """
         return len(self.zones)
     
     def get_summary(self) -> str:
         """
-        Generate a text summary of all zones and their statistics.
+        Generates a multi-line formatted text summary of all zones and their statistics.
         
         Returns:
-            str: Multi-line summary string.
+            str: A formatted string detailing zone names, entry counts, and occupancy status.
         """
         lines = [f"Active zones: {self.zone_count}"]
         for z in self.zones:
