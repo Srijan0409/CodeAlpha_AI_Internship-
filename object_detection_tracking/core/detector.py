@@ -1,11 +1,14 @@
 """
 YOLOv8-based Object Detection Module.
-This module handles loading the pretrained YOLOv8 model and running inference.
+
+This module handles loading the pretrained YOLOv8 model and running inference
+on image or video frames to detect objects.
 """
 
-from ultralytics import YOLO
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 import numpy as np
+from ultralytics import YOLO
+
 from core.config import CFG
 
 # New - detect everything, classify as living or non-living
@@ -17,40 +20,53 @@ LIVING_CLASSES = [
 class Detector:
     """
     Wrapper class for YOLOv8 object detection.
-    Filters detections by confidence and specific classes.
+    
+    This class loads a pre-trained YOLO model and processes frames to return
+    bounding boxes, confidences, class names, and a custom 'is_living' flag.
+    
+    Attributes:
+        model (YOLO): The loaded YOLOv8 model instance.
+        conf_threshold (float): Minimum confidence score to keep a detection.
     """
     def __init__(self, model_path: str = CFG.model_path, conf_threshold: float = CFG.confidence):
         """
         Initializes the YOLOv8 detector.
         
         Args:
-            model_path (str): Path to the pretrained YOLOv8 weights.
-            conf_threshold (float): Minimum confidence to keep a detection.
+            model_path (str): Path to the pretrained YOLOv8 weights (e.g., 'yolov8n.pt').
+            conf_threshold (float): Minimum confidence threshold for filtering detections.
         """
         print(f"🎯 Loading YOLO model from {model_path}...")
+        
         # AIML Concept: Convolutional Neural Networks (CNN) backbone
-        # YOLOv8 utilizes a CNN backbone to extract rich feature maps from images.
+        # The YOLO architecture utilizes a deep CNN backbone (like CSPDarknet) 
+        # to extract rich, hierarchical spatial features from the input frames.
+        
         # AIML Concept: Anchor-free object detection
-        # YOLOv8 is an anchor-free model, directly predicting object centers and bounding box dimensions.
+        # Modern iterations like YOLOv8 are anchor-free models. They directly predict 
+        # object centers and bounding box dimensions, avoiding complex anchor box tuning.
         self.model = YOLO(model_path)
         self.conf_threshold = conf_threshold
-        
-        pass
         
     def detect(self, frame: np.ndarray) -> List[Dict[str, Any]]:
         """
         Runs object detection on a single frame.
         
         Args:
-            frame (np.ndarray): The image/video frame from OpenCV.
+            frame (np.ndarray): The image or video frame from OpenCV (BGR format).
             
         Returns:
-            List[Dict[str, Any]]: List of detections. Format:
-                {bbox: [x1, y1, x2, y2], class_name: str, confidence: float}
+            List[Dict[str, Any]]: A list of dictionaries representing valid detections.
+                Each dictionary contains:
+                - 'bbox' (List[int]): Bounding box coordinates [x1, y1, x2, y2].
+                - 'class_name' (str): The string label of the detected object class.
+                - 'confidence' (float): The detection confidence score.
+                - 'is_living' (bool): True if the class is designated as a living entity.
         """
-        # Run inference
         # AIML Concept: Non-Maximum Suppression (NMS)
-        # Ultralytics internally applies NMS to filter out overlapping bounding boxes predicting the same object.
+        # The detect function inherently relies on NMS applied by the Ultralytics backend.
+        # NMS filters out multiple overlapping bounding boxes that predict the same object,
+        # keeping only the box with the highest confidence score.
         results = self.model(frame, verbose=False)[0]
         
         detections = []
@@ -61,7 +77,8 @@ class Detector:
             # Filter by confidence
             if conf >= self.conf_threshold:
                 # AIML Concept: Bounding box regression
-                # YOLO regresses the final bounding box coordinates
+                # Instead of standard classification, YOLO performs bounding box regression.
+                # It outputs continuous coordinate values to pinpoint the bounding box limits.
                 x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
                 class_name = self.model.names[cls_id]
                 is_living = class_name in LIVING_CLASSES
