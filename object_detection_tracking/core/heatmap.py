@@ -1,6 +1,6 @@
+from typing import Optional, Tuple
 import cv2
 import numpy as np
-from typing import Optional, Tuple
 
 class DetectionHeatmap:
     """
@@ -8,12 +8,27 @@ class DetectionHeatmap:
     
     Each detection adds a Gaussian blob to the heatmap grid at the centroid position.
     The heatmap is normalized and rendered as a JET colormap overlay on the video frame.
+    This visualizes where objects appear most frequently over the session \u2014 a form of 
+    spatial frequency analysis useful in security and traffic monitoring.
     
-    This visualizes where objects appear most frequently over the session \u2014
-    a form of spatial frequency analysis useful in security and traffic monitoring.
+    Attributes:
+        h (int): The height of the video frame.
+        w (int): The width of the video frame.
+        decay (float): The temporal decay factor applied each frame to fade out older detections.
+        grid (np.ndarray): The 2D float accumulator array maintaining the heatmap intensities.
+        total_detections (int): The overall sum of detections registered to the heatmap.
+        enabled (bool): State flag controlling whether the heatmap accumulates and renders.
     """
     
     def __init__(self, frame_height: int, frame_width: int, decay: float = 0.998):
+        """
+        Initializes the DetectionHeatmap.
+        
+        Args:
+            frame_height (int): The height of the video frames being processed.
+            frame_width (int): The width of the video frames being processed.
+            decay (float): The multiplier applied per frame to naturally fade historical data.
+        """
         self.h = frame_height
         self.w = frame_width
         self.decay = decay  # Multiply heatmap by this each frame \u2014 older detections fade
@@ -31,7 +46,12 @@ class DetectionHeatmap:
         print(f"Heatmap initialized: {frame_width}x{frame_height}, decay={decay}")
     
     def _build_gaussian_kernel(self) -> np.ndarray:
-        """Build a 2D Gaussian kernel for spreading detection points."""
+        """
+        Constructs a 2D Gaussian kernel used to distribute the 'heat' of a single detection.
+        
+        Returns:
+            np.ndarray: A 2D normalized numpy array containing the Gaussian distribution.
+        """
         k = self._kernel_size
         center = k // 2
         kernel = np.zeros((k, k), dtype=np.float32)
@@ -41,10 +61,16 @@ class DetectionHeatmap:
                 kernel[y, x] = np.exp(-dist_sq / (2 * self._sigma**2))
         return kernel / kernel.max()  # normalize to [0, 1]
     
-    def add_detection(self, cx: int, cy: int, confidence: float = 1.0):
+    def add_detection(self, cx: int, cy: int, confidence: float = 1.0) -> None:
         """
-        Add a detection at centroid (cx, cy) weighted by confidence.
-        Adds a Gaussian blob centered at (cx, cy) to the accumulator grid.
+        Registers a new detection point to the heatmap grid.
+        
+        Adds a Gaussian blob centered at the coordinate (cx, cy), weighted by the confidence.
+        
+        Args:
+            cx (int): The x-coordinate of the detection centroid.
+            cy (int): The y-coordinate of the detection centroid.
+            confidence (float): The confidence score of the detection, used as a multiplier.
         """
         if not self.enabled:
             return
@@ -73,22 +99,27 @@ class DetectionHeatmap:
             self.grid[fy1:fy2, fx1:fx2] += self._kernel[ky1:ky2, kx1:kx2] * confidence
             self.total_detections += 1
     
-    def decay_frame(self):
+    def decay_frame(self) -> None:
         """
-        Apply temporal decay \u2014 multiply grid by decay factor each frame.
-        Makes older detections fade out gradually so heatmap stays current.
-        This is called once per frame even when no new detections occur.
+        Applies a temporal decay multiplier to the entire heatmap grid.
+        
+        This forces older detection blobs to fade away gradually, ensuring the heatmap 
+        represents recent spatial activity rather than an infinite accumulation.
         """
         self.grid *= self.decay
     
     def render(self, frame: np.ndarray, alpha: float = 0.45) -> np.ndarray:
         """
-        Render heatmap as a transparent overlay on the video frame.
+        Renders the accumulated heatmap as a semi-transparent color overlay on the video frame.
         
-        Normalizes the grid to [0,255], applies JET colormap (blue=cold, red=hot),
-        then blends with original frame using alpha.
+        Normalizes the intensity grid to [0, 255] and maps it through a JET colormap.
         
-        Returns frame with heatmap overlay. Does not modify frame in-place.
+        Args:
+            frame (np.ndarray): The original video frame (BGR).
+            alpha (float): The blending factor for the heatmap overlay (0.0 to 1.0).
+            
+        Returns:
+            np.ndarray: A new image array with the heatmap blended over the original frame.
         """
         if not self.enabled or self.total_detections == 0:
             return frame
@@ -104,7 +135,6 @@ class DetectionHeatmap:
         colored = cv2.applyColorMap(normalized, cv2.COLORMAP_JET)
         
         # Mask: only show heatmap where grid value is above a threshold
-        # This prevents the blue "cold" areas from covering the whole frame
         mask = normalized > 15  # threshold \u2014 ignore very faint areas
         mask_3ch = np.stack([mask, mask, mask], axis=2)
         
@@ -114,19 +144,28 @@ class DetectionHeatmap:
         
         return result
     
-    def reset(self):
-        """Clear the heatmap accumulator."""
+    def reset(self) -> None:
+        """
+        Clears the heatmap accumulator array, destroying all historical spatial data.
+        """
         self.grid = np.zeros((self.h, self.w), dtype=np.float32)
         self.total_detections = 0
         print("Heatmap reset")
     
-    def toggle(self):
-        """Toggle heatmap rendering on/off."""
+    def toggle(self) -> None:
+        """
+        Toggles the enabled state of the heatmap generator and renderer.
+        """
         self.enabled = not self.enabled
         print(f"Heatmap: {'ON' if self.enabled else 'OFF'}")
     
     def get_hotspot(self) -> Optional[Tuple[int, int]]:
-        """Return (x, y) coordinates of the single hottest point in the heatmap."""
+        """
+        Identifies the singular hottest coordinate point currently in the heatmap.
+        
+        Returns:
+            Optional[Tuple[int, int]]: The (x, y) coordinates of the peak intensity, or None if empty.
+        """
         if self.total_detections == 0:
             return None
         idx = np.unravel_index(np.argmax(self.grid), self.grid.shape)
