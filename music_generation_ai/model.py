@@ -53,5 +53,5 @@ def create_network(n_vocab):
 if __name__ == '__main__':
     # Test script to verify model creation
     print("Testing model build with a dummy vocab size of 100...")
-    model = create_network(100)
+    model = create_network(100) 
     print("Model successfully built.")
