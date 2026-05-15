@@ -10,7 +10,8 @@ from model import create_network
 # Temperature / creativity control (default value: 1.0)
 # Low temperature (0.5) = more predictable music
 # High temperature (1.5) = more creative/random music
-TEMPERATURE = 1.0
+TEMPERATURE = float(os.environ.get("TEMPERATURE", 1.0))
+NOTE_COUNT = int(os.environ.get("NOTE_COUNT", 500))
 
 def generate_music():
     """ 
@@ -69,12 +70,12 @@ def generate_music():
     pattern = network_input[start_index]
     
     print("Random starting sequence selected.")
-    print("Generating 500 new notes by predicting one note at a time...")
+    print(f"Generating {NOTE_COUNT} new notes by predicting one note at a time...")
     
     prediction_output = []
     
-    # Generate 500 notes
-    for note_index in range(500):
+    # Generate requested number of notes
+    for note_index in range(NOTE_COUNT):
         # Format the input sequence for the model
         prediction_input = np.reshape(pattern, (1, len(pattern), 1))
         prediction_input = prediction_input / float(n_vocab)
@@ -98,7 +99,7 @@ def generate_music():
         pattern = pattern[1:len(pattern)]
         
         if (note_index + 1) % 50 == 0:
-            print(f"Generated {note_index + 1}/500 notes...")
+            print(f"Generated {note_index + 1}/{NOTE_COUNT} notes...")
             
     print("Generation complete. Converting sequence to MIDI file...")
     create_midi(prediction_output, base_dir)
