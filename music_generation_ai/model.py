@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, LSTM
+import time
 
 def create_network(n_vocab):
     """
@@ -51,7 +52,13 @@ def create_network(n_vocab):
     return model
 
 if __name__ == '__main__':
-    # Test script to verify model creation
-    print("Testing model build with a dummy vocab size of 100...")
-    model = create_network(100) 
-    print("Model successfully built.")
+    try:
+        start_time = time.time()
+        # Test script to verify model creation
+        print("Testing model build with a dummy vocab size of 100...")
+        model = create_network(100)
+        print("Model successfully built.")
+        elapsed = int(time.time() - start_time)
+        print(f"Completed in {elapsed // 60} minutes {elapsed % 60} seconds")
+    except Exception as e:
+        print(f"Something went wrong: {e}. Please check the README for help.")
