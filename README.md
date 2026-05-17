@@ -354,9 +354,9 @@ The system operates as a continuous, linear pipeline optimized for speed. First,
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-**Author:** [YOUR NAME]  
-**Institution:** [YOUR COLLEGE]  
+**Author:** [Srijan Sahu]  
+**Institution:** [Shri Shankracharya Technical Campus, Bhilai ]  
 **Year:** 2026  
 
-Built as part of the AIML internship program, May 2026.  
-[GitHub](https://github.com/yourusername) | [LinkedIn](https://linkedin.com/in/yourusername)
+Built as part of the AI internship program, May 2026.  
+[GitHub](https://github.com/Srijan0409) | [LinkedIn](https://www.linkedin.com/in/srijan-sahu-137078288/)
